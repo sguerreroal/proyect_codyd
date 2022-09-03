@@ -1,43 +1,51 @@
 import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
 import { catchError, map } from 'rxjs/operators';
+import { ReportDto } from './dto/report.dto';
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(private readonly httpService: HttpService) {
+  }
 
-  getReports(body) {
+  private user;
+
+  getUser(body: ReportDto){
+    return this.httpService
+      .post(
+        'https://reportes-codyd.herokuapp.com/v1/login',
+        {
+            "email": body.email,
+            "password": body.password
+        },
+      )
+      .pipe(
+        map((response) => response.data)
+      )
+      .pipe(
+        catchError((e) => {
+          throw new HttpException(e.response.data, e.response.status);
+        }),
+      );
+  }
+
+  async getReports(body: ReportDto) {
+
+    this.user = await this.getUser(body).toPromise();    
     return this.httpService
       .get(
-        'https://reportes-codyd.herokuapp.com/v1/facebook/page/metrics?page_id=554684771219613&metrics=page_fans,page_fan_adds,page_fan_removes,page_follows,page_daily_follows,page_daily_unfollows,page_engaged_users,page_impressions_unique,page_impressions,page_impressions_viral_unique,page_impressions_organic_unique,page_impressions_paid_unique,page_posts_impressions_unique,page_posts_impressions_viral_unique,page_posts_impressions_organic_unique,page_posts_impressions_paid_unique&since=2022-05-01&until=2022-07-31',
+        `https://reportes-codyd.herokuapp.com/v1/facebook/page/metrics?page_id=${body.client_id}&metrics=${body.metrics}&since=${body.since}&until=${body.until}`,
         {
           headers: {
             Authorization:
-              'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiJWOGU3VENRVmhPYUhuV1NER1Z3WG1YNUd5VnoxIiwiZXhwIjoxNjYyMjQxODE4fQ.V9D6mBFk4MwuU2aQhXLxEOxumGG2wohxY8PNc6tjKQ0',
+              `Bearer ${this.user.token}`,
           },
         },
       )
       .pipe(
         map((response) => {
-            
-          const likes = response.data.data[0];
-          const ganados = response.data.data[1];
-          const perdidos = response.data.data[2];
-          const crecimiento_comunidad = response.data.data[3];
-          const ganados_crecimiento_comunidad = response.data.data[4];
-          const perdidos_crecimiento_comunidad = response.data.data[5];
-          const engagement = response.data.data[6];
-          const alcance = response.data.data[7];
-          const impresiones = response.data.data[8];
-          const alance_persona = response.data.data[9];
-          const alance_organico_pagina = response.data.data[10];
-          const alance_pago_pagina = response.data.data[11];
-          const alance_total_pagina = response.data.data[12];
-          const alance_diario_persona = response.data.data[13];
-          const alance_diario_organico = response.data.data[14];
-          const alance_diario_pagado = response.data.data[15];
-
-          return response.data.data[0];
+        //   this.transformData(response.data);
+          return response.data;
         }),
       )
       .pipe(
@@ -45,5 +53,32 @@ export class ReportsService {
           throw new HttpException(e.response.data, e.response.status);
         }),
       );
+  }
+
+  transformData(data){
+    let likes = data.data[0].rows;
+    let ganados = data.data[1].rows;
+    let perdidos = data.data[2].rows;
+    let crecimiento_comunidad = data.data[3].rows;
+    let ganados_crecimiento_comunidad = data.data[4].rows;
+    let perdidos_crecimiento_comunidad = data.data[5].rows;
+    let engagement = data.data[6].rows;
+    let alcance = data.data[7].rows;
+    let impresiones = data.data[8].rows;
+    let alance_persona = data.data[9].rows;
+    let alance_organico_pagina = data.data[10].rows;
+    let alance_pago_pagina = data.data[11].rows;
+    let alance_total_pagina = data.data[12].rows;
+    let alance_diario_persona = data.data[13].rows;
+    let alance_diario_organico = data.data[14].rows;
+    let alance_diario_pagado = data.data[15].rows;
+
+    likes = likes.map(like => `${like[0]}-${like[1]}`)
+    ganados = ganados.map(ganado => `${ganado[0]}-${ganado[1]}`)
+    perdidos = perdidos.map(perdido => `${perdido[0]}-${perdido[1]}`)
+    crecimiento_comunidad = crecimiento_comunidad.map(crecimiento_comun => `${crecimiento_comun[0]}-${crecimiento_comun[1]}`)
+    ganados_crecimiento_comunidad = ganados_crecimiento_comunidad.map(ganados_crecimiento_comun => `${ganados_crecimiento_comun[0]}-${ganados_crecimiento_comun[1]}`)
+
+    console.log('data recibida' + JSON.stringify(likes));
   }
 }
