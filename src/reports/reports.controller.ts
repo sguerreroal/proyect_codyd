@@ -8,6 +8,7 @@ export class ReportsController {
   constructor(private readonly reporsService: ReportsService) {}
   @Post()
   async getReports(@Body() body: ReportDto) {
-    return this.reporsService.getReports(body);
+    return this.reporsService.getReportInstagramUser(body);
+    // return this.reporsService.getReportFacebook(body);
   }
 }
