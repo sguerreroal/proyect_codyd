@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { catchError, map } from 'rxjs/operators';
-import { AlcanceInstagram } from 'src/typeorm';
+import { AlcanceInstagram, SeguidorInstagram } from 'src/typeorm';
 import { Repository } from 'typeorm';
 import { ReportDto } from './dto/report.dto';
 
@@ -12,6 +12,8 @@ export class ReportsService {
     private readonly httpService: HttpService,
     @InjectRepository(AlcanceInstagram)
     private readonly alcanceInstagramRepository: Repository<AlcanceInstagram>,
+    @InjectRepository(SeguidorInstagram)
+    private readonly seguidorInstagramRepository: Repository<SeguidorInstagram>,
   ) {}
 
   private user;
@@ -108,8 +110,43 @@ export class ReportsService {
 
   async transformData(data, network) {
     this.initialDate = new Date(this.body.since + 'T12:00:00');
+    const SQL_QUERY = {
+      identificacion_cliente: this.body.client_id,
+      fecha: this.initialDate,
+    };
     if (network == 'instagram') {
+      let seguidores_instagram = data.data[0].rows;
       let alcances_instagram = data.data[1].rows;
+
+      seguidores_instagram = seguidores_instagram.map(
+        (seguidor_instagram) =>
+          `${seguidor_instagram[0]}-${seguidor_instagram[1]}`,
+      );
+
+      seguidores_instagram.forEach(async (seguidor_ig, index) => {
+        const values = seguidor_ig.split('-');
+
+        const data = {
+          identificacion_cliente: this.body.client_id,
+          nombre_cliente: this.body.client_name,
+          nombre_red_social: 'instagram',
+          num_comunidad: values[0],
+          fecha:
+            index == 0 ? this.body.since : this.increaseDate(this.initialDate),
+        };
+
+        const existRecordsWithDate =
+          await this.seguidorInstagramRepository.findOne({
+            where: SQL_QUERY,
+          });
+
+        !existRecordsWithDate
+          ? this.insertData(data, 'instagram_seguidores')
+          : '';
+      });
+
+      this.initialDate = new Date(this.body.since + 'T12:00:00');
+
       alcances_instagram = alcances_instagram.map(
         (alcance_instagram) =>
           `${alcance_instagram[0]}-${alcance_instagram[1]}`,
@@ -129,12 +166,10 @@ export class ReportsService {
 
         const existRecordsWithDate =
           await this.alcanceInstagramRepository.findOne({
-            where: {
-              fecha: this.initialDate,
-            },
+            where: SQL_QUERY,
           });
 
-        !existRecordsWithDate ? this.insertData(data, 'instagram') : '';
+        !existRecordsWithDate ? this.insertData(data, 'instagram_alcance') : '';
       });
     } else if (network == 'facebook') {
       let likes = data.data[0].rows;
@@ -170,8 +205,10 @@ export class ReportsService {
   }
 
   insertData(data, network) {
-    if (network == 'instagram') {
+    if (network == 'instagram_alcance') {
       this.alcanceInstagramRepository.save(data);
+    } else if (network == 'instagram_seguidores') {
+      this.seguidorInstagramRepository.save(data);
     }
   }
 
