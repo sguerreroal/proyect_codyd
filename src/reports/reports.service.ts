@@ -90,7 +90,6 @@ export class ReportsService {
       .pipe(
         map((response) => {
           this.parseData = this.transformData(response.data, 'instagram');
-          return response.data;
         }),
       )
       .pipe(
@@ -115,7 +114,6 @@ export class ReportsService {
       .pipe(
         map((response) => {
           this.parseData = this.transformData(response.data, 'instagram_posts');
-          return response.data;
         }),
       )
       .pipe(
