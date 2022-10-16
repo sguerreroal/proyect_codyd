@@ -33,9 +33,15 @@ export class ReportsService {
   ) {}
 
   private user;
-  private parseData;
   private body;
   private initialDate;
+
+  async processReport(body: ReportDto) {
+    return Promise.allSettled([
+      (await this.getReportInstagramUser(body)).toPromise(),
+      (await this.getReportInstagramPosts(body)).toPromise(),
+    ]);
+  }
 
   getUser(body: ReportDto) {
     return this.httpService
@@ -89,11 +95,27 @@ export class ReportsService {
       )
       .pipe(
         map((response) => {
-          this.parseData = this.transformData(response.data, 'instagram');
+          return this.transformData(response.data, 'instagram');
+          console.info(`
+          Informacion Instagram User procesada -
+          ${body.client_name}
+          ${body.client_id}
+          ${body.since}
+          ${body.until}
+          `);
         }),
       )
       .pipe(
         catchError((e) => {
+          console.error(`
+          Informacion Instagram User error -
+          ${body.client_name}
+          ${body.client_id}
+          ${body.since}
+          ${body.until}
+          - ERROR
+          ${e.response.data}
+          `);
           throw new HttpException(e.response.data, e.response.status);
         }),
       );
@@ -113,11 +135,20 @@ export class ReportsService {
       )
       .pipe(
         map((response) => {
-          this.parseData = this.transformData(response.data, 'instagram_posts');
+          return this.transformData(response.data, 'instagram_posts');
         }),
       )
       .pipe(
         catchError((e) => {
+          console.error(`
+          Informacion Instagram Posts error -
+          ${body.client_name}
+          ${body.client_id}
+          ${body.since}
+          ${body.until}
+          - ERROR
+          ${e.response.data}
+          `);
           throw new HttpException(e.response.data, e.response.status);
         }),
       );
@@ -186,6 +217,14 @@ export class ReportsService {
 
         !existRecordsWithDate ? this.insertData(data, 'instagram_alcance') : '';
       });
+
+      console.info(`
+        Informacion Instagram User procesada -
+        ${this.body.client_name}
+        ${this.body.client_id}
+        ${this.body.since}
+        ${this.body.until}
+        `);
     } else if (network == 'instagram_posts') {
       let reacciones_ranking_ig = data.data[0].rows;
       let comentarios_ranking_ig = data.data[1].rows;
@@ -325,6 +364,13 @@ export class ReportsService {
 
         !existRecordsWithDate ? this.insertData(data, 'alcance_ranking') : '';
       });
+      console.info(`
+        Informacion Instagram Posts procesada -
+        ${this.body.client_name}
+        ${this.body.client_id}
+        ${this.body.since}
+        ${this.body.until}
+        `);
     } else if (network == 'facebook') {
       let likes = data.data[0].rows;
       let ganados = data.data[1].rows;
