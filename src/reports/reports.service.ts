@@ -7,6 +7,7 @@ import {
   AlcanceInstagram,
   AlcanceRanking,
   ComentariosRanking,
+  EvolucionLikes,
   GuardadasRanking,
   ReaccionesRanking,
   SeguidorInstagram,
@@ -30,6 +31,8 @@ export class ReportsService {
     private readonly guardadaRankingRepository: Repository<GuardadasRanking>,
     @InjectRepository(AlcanceRanking)
     private readonly alcanceRankingRepository: Repository<AlcanceRanking>,
+    @InjectRepository(EvolucionLikes)
+    private readonly evolucionLikesRepository: Repository<EvolucionLikes>,
   ) {}
 
   private user;
@@ -38,8 +41,9 @@ export class ReportsService {
 
   async processReport(body: ReportDto) {
     return Promise.allSettled([
-      (await this.getReportInstagramUser(body)).toPromise(),
-      (await this.getReportInstagramPosts(body)).toPromise(),
+      // (await this.getReportInstagramUser(body)).toPromise(),
+      // (await this.getReportInstagramPosts(body)).toPromise(),
+      (await this.getReportFacebook(body)).toPromise(),
     ]);
   }
 
@@ -59,6 +63,8 @@ export class ReportsService {
 
   async getReportFacebook(body: ReportDto) {
     this.user = await this.getUser(body).toPromise();
+    this.body = body;
+
     return this.httpService
       .get(
         `https://reportes-codyd.herokuapp.com/v1/facebook/page/metrics?page_id=${body.client_id}&metrics=${body.metrics}&since=${body.since}&until=${body.until}`,
@@ -70,12 +76,20 @@ export class ReportsService {
       )
       .pipe(
         map((response) => {
-          //   this.transformData(response.data);
-          return response.data;
+          this.transformData(response.data, 'facebook');
         }),
       )
       .pipe(
         catchError((e) => {
+          console.error(`
+          Informacion Facebook error -
+          ${body.client_name}
+          ${body.client_id}
+          ${body.since}
+          ${body.until}
+          - ERROR
+          ${e.response.data}
+          `);
           throw new HttpException(e.response.data, e.response.status);
         }),
       );
@@ -96,13 +110,6 @@ export class ReportsService {
       .pipe(
         map((response) => {
           return this.transformData(response.data, 'instagram');
-          console.info(`
-          Informacion Instagram User procesada -
-          ${body.client_name}
-          ${body.client_id}
-          ${body.since}
-          ${body.until}
-          `);
         }),
       )
       .pipe(
@@ -160,6 +167,11 @@ export class ReportsService {
       identificacion_cliente: this.body.client_id,
       fecha: this.initialDate,
     };
+
+    const globalData = {
+      identificacion_cliente: this.body.client_id,
+      nombre_cliente: this.body.client_name,
+    };
     if (network == 'instagram') {
       let seguidores_instagram = data.data[0].rows;
       let alcances_instagram = data.data[1].rows;
@@ -173,8 +185,7 @@ export class ReportsService {
         const values = seguidor_ig.split('-');
 
         const data = {
-          identificacion_cliente: this.body.client_id,
-          nombre_cliente: this.body.client_name,
+          ...globalData,
           nombre_red_social: 'instagram',
           num_comunidad: values[0],
           fecha:
@@ -202,8 +213,7 @@ export class ReportsService {
         const values = alcance_ig.split('-');
 
         const data = {
-          identificacion_cliente: this.body.client_id,
-          nombre_cliente: this.body.client_name,
+          ...globalData,
           nombre_red_social: 'instagram',
           num_alcance_instagram: values[0],
           fecha:
@@ -231,12 +241,6 @@ export class ReportsService {
       let alcances_ranking_ig = data.data[2].rows;
       let guardadas_ranking_ig = data.data[3].rows;
 
-      const globalData = {
-        identificacion_cliente: this.body.client_id,
-        nombre_cliente: this.body.client_name,
-        nombre_red_social: 'instagram',
-      };
-
       // ------- REACCIONES RANKING --------
 
       reacciones_ranking_ig = reacciones_ranking_ig.map(
@@ -249,6 +253,7 @@ export class ReportsService {
 
         const data = {
           ...globalData,
+          nombre_red_social: 'instagram',
           publicacion: values[1],
           link: values[2],
           num_reacciones: values[3],
@@ -282,6 +287,7 @@ export class ReportsService {
 
         const data = {
           ...globalData,
+          nombre_red_social: 'instagram',
           publicacion: values[1],
           link: values[2],
           num_comentarios: values[3],
@@ -315,6 +321,7 @@ export class ReportsService {
 
         const data = {
           ...globalData,
+          nombre_red_social: 'instagram',
           publicacion: values[1],
           link: values[2],
           num_guardados: values[3],
@@ -346,6 +353,7 @@ export class ReportsService {
 
         const data = {
           ...globalData,
+          nombre_red_social: 'instagram',
           publicacion: values[1],
           link: values[2],
           num_alcance: values[3],
@@ -389,9 +397,41 @@ export class ReportsService {
       const alance_diario_organico = data.data[14].rows;
       const alance_diario_pagado = data.data[15].rows;
 
-      likes = likes.map((like) => `${like[0]}-${like[1]}`);
-      ganados = ganados.map((ganado) => `${ganado[0]}-${ganado[1]}`);
-      perdidos = perdidos.map((perdido) => `${perdido[0]}-${perdido[1]}`);
+      likes = likes.map((like) => `${like[0]}-split${like[1]}`);
+      ganados = ganados.map((ganado) => `${ganado[0]}-split${ganado[1]}`);
+      perdidos = perdidos.map((perdido) => `${perdido[0]}-split${perdido[1]}`);
+
+      // ------- EVOLUCIONES LIKES --------
+
+      for (let index = 0; index < likes.length; index++) {
+        const likes_values = likes[index].split('-split');
+        const ganados_values = ganados[index].split('-split');
+        const perdidos_values = perdidos[index].split('-split');
+
+        const data = {
+          ...globalData,
+          nombre_red_social: 'facebook',
+          num_likes: likes_values[0],
+          num_ganados: ganados_values[0],
+          num_perdidos: perdidos_values[0],
+          fecha: this.detectDateByString(
+            `${likes_values[1]}${this.initialDate.getFullYear()}`,
+          ),
+        };
+
+        const existRecordsWithDate =
+          await this.evolucionLikesRepository.findOne({
+            where: {
+              identificacion_cliente: this.body.client_id,
+              fecha: data.fecha,
+            },
+          });
+
+        !existRecordsWithDate
+          ? this.insertData(data, 'facebook_evolucion')
+          : '';
+      }
+
       crecimiento_comunidad = crecimiento_comunidad.map(
         (crecimiento_comun) =>
           `${crecimiento_comun[0]}-${crecimiento_comun[1]}`,
@@ -400,7 +440,6 @@ export class ReportsService {
         (ganados_crecimiento_comun) =>
           `${ganados_crecimiento_comun[0]}-${ganados_crecimiento_comun[1]}`,
       );
-      console.log('data recibida' + JSON.stringify(likes));
     }
   }
 
@@ -417,6 +456,8 @@ export class ReportsService {
       this.guardadaRankingRepository.save(data);
     } else if (table == 'alcance_ranking') {
       this.alcanceRankingRepository.save(data);
+    } else if (table == 'facebook_evolucion') {
+      this.evolucionLikesRepository.save(data);
     }
   }
 

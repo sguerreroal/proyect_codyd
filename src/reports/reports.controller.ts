@@ -11,6 +11,5 @@ export class ReportsController {
     return {
       message: 'Informacion almacenada exitosamente',
     };
-    // return this.reporsService.getReportFacebook(body);
   }
 }
