@@ -30,6 +30,12 @@ export class AlcanceRanking {
     nullable: false,
     default: '',
   })
+  tipo_anuncio: string;
+
+  @Column({
+    nullable: false,
+    default: '',
+  })
   publicacion: string;
 
   @Column({
