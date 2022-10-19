@@ -3,12 +3,16 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   AlcanceInstagram,
+  AlcancePagina,
+  AlcancePublicacion,
   AlcanceRanking,
   ComentariosRanking,
+  Evolucion,
   EvolucionLikes,
   GuardadasRanking,
   ReaccionesRanking,
   SeguidorInstagram,
+  SeguidorPagina,
 } from 'src/typeorm';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
@@ -27,6 +31,10 @@ import { ReportsService } from './reports.service';
       GuardadasRanking,
       AlcanceRanking,
       EvolucionLikes,
+      SeguidorPagina,
+      Evolucion,
+      AlcancePagina,
+      AlcancePublicacion,
     ]),
   ],
   controllers: [ReportsController],

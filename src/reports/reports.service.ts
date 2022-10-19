@@ -5,12 +5,16 @@ import * as moment from 'moment';
 import { catchError, map } from 'rxjs/operators';
 import {
   AlcanceInstagram,
+  AlcancePagina,
+  AlcancePublicacion,
   AlcanceRanking,
   ComentariosRanking,
+  Evolucion,
   EvolucionLikes,
   GuardadasRanking,
   ReaccionesRanking,
   SeguidorInstagram,
+  SeguidorPagina,
 } from 'src/typeorm';
 import { Repository } from 'typeorm';
 import { ReportDto } from './dto/report.dto';
@@ -33,6 +37,14 @@ export class ReportsService {
     private readonly alcanceRankingRepository: Repository<AlcanceRanking>,
     @InjectRepository(EvolucionLikes)
     private readonly evolucionLikesRepository: Repository<EvolucionLikes>,
+    @InjectRepository(SeguidorPagina)
+    private readonly seguidorPaginaRepository: Repository<SeguidorPagina>,
+    @InjectRepository(Evolucion)
+    private readonly evolucionRepository: Repository<Evolucion>,
+    @InjectRepository(AlcancePagina)
+    private readonly alcancePaginaRepository: Repository<AlcancePagina>,
+    @InjectRepository(AlcancePublicacion)
+    private readonly alcancePublicacionRepository: Repository<AlcancePublicacion>,
   ) {}
 
   private user;
@@ -385,17 +397,17 @@ export class ReportsService {
       let perdidos = data.data[2].rows;
       let crecimiento_comunidad = data.data[3].rows;
       let ganados_crecimiento_comunidad = data.data[4].rows;
-      const perdidos_crecimiento_comunidad = data.data[5].rows;
-      const engagement = data.data[6].rows;
-      const alcance = data.data[7].rows;
-      const impresiones = data.data[8].rows;
-      const alance_persona = data.data[9].rows;
-      const alance_organico_pagina = data.data[10].rows;
-      const alance_pago_pagina = data.data[11].rows;
-      const alance_total_pagina = data.data[12].rows;
-      const alance_diario_persona = data.data[13].rows;
-      const alance_diario_organico = data.data[14].rows;
-      const alance_diario_pagado = data.data[15].rows;
+      let perdidos_crecimiento_comunidad = data.data[5].rows;
+      let engagement = data.data[6].rows;
+      let alcance = data.data[7].rows;
+      let impresiones = data.data[8].rows;
+      let alcance_persona = data.data[9].rows;
+      let alcance_organico_pagina = data.data[10].rows;
+      let alcance_pago_pagina = data.data[11].rows;
+      let alcance_total_pagina = data.data[12].rows;
+      let alcance_diario_persona = data.data[13].rows;
+      let alcance_diario_organico = data.data[14].rows;
+      let alcance_diario_pagado = data.data[15].rows;
 
       likes = likes.map((like) => `${like[0]}-split${like[1]}`);
       ganados = ganados.map((ganado) => `${ganado[0]}-split${ganado[1]}`);
@@ -428,18 +440,199 @@ export class ReportsService {
           });
 
         !existRecordsWithDate
+          ? this.insertData(data, 'facebook_evolucion_likes')
+          : '';
+      }
+
+      // ------- SEGUIDORES PAGINA --------
+
+      crecimiento_comunidad = crecimiento_comunidad.map(
+        (crecimiento_comun) =>
+          `${crecimiento_comun[0]}-split${crecimiento_comun[1]}`,
+      );
+      ganados_crecimiento_comunidad = ganados_crecimiento_comunidad.map(
+        (ganado_crecimiento_comunidad) =>
+          `${ganado_crecimiento_comunidad[0]}-split${ganado_crecimiento_comunidad[1]}`,
+      );
+      perdidos_crecimiento_comunidad = perdidos_crecimiento_comunidad.map(
+        (perdido_crecimiento_comunidad) =>
+          `${perdido_crecimiento_comunidad[0]}-split${perdido_crecimiento_comunidad[1]}`,
+      );
+
+      for (let index = 0; index < crecimiento_comunidad.length; index++) {
+        const crecimiento_comunidad_values =
+          crecimiento_comunidad[index].split('-split');
+        const ganados_crecimiento_comunidad_values =
+          ganados_crecimiento_comunidad[index].split('-split');
+        const perdidos_crecimiento_comunidad_values =
+          perdidos_crecimiento_comunidad[index].split('-split');
+
+        const data = {
+          ...globalData,
+          nombre_red_social: 'facebook',
+          num_seguidores: crecimiento_comunidad_values[0],
+          num_ganados: ganados_crecimiento_comunidad_values[0],
+          num_perdidos: perdidos_crecimiento_comunidad_values[0],
+          fecha: this.detectDateByString(
+            `${
+              crecimiento_comunidad_values[1]
+            }${this.initialDate.getFullYear()}`,
+          ),
+        };
+
+        const existRecordsWithDate =
+          await this.seguidorPaginaRepository.findOne({
+            where: {
+              identificacion_cliente: this.body.client_id,
+              fecha: data.fecha,
+            },
+          });
+
+        !existRecordsWithDate
+          ? this.insertData(data, 'facebook_seguidores')
+          : '';
+      }
+
+      // ------- EVOLUCION --------
+
+      engagement = engagement.map(
+        (engagement) => `${engagement[0]}-split${engagement[1]}`,
+      );
+      alcance = alcance.map((alcance) => `${alcance[0]}-split${alcance[1]}`);
+      impresiones = impresiones.map(
+        (impresiones) => `${impresiones[0]}-split${impresiones[1]}`,
+      );
+      alcance_persona = alcance_persona.map(
+        (alcance_persona) => `${alcance_persona[0]}-split${alcance_persona[1]}`,
+      );
+
+      for (let index = 0; index < engagement.length; index++) {
+        const engagement_values = engagement[index].split('-split');
+        const alcance_values = alcance[index].split('-split');
+        const impresiones_values = impresiones[index].split('-split');
+        const alcance_persona_values = alcance_persona[index].split('-split');
+
+        const data = {
+          ...globalData,
+          nombre_red_social: 'facebook',
+          num_engagement: engagement_values[0],
+          num_alcance: alcance_values[0],
+          num_impresiones: impresiones_values[0],
+          num_alcance_personas_hablando: alcance_persona_values[0],
+          fecha: this.detectDateByString(
+            `${engagement_values[1]}${this.initialDate.getFullYear()}`,
+          ),
+        };
+
+        const existRecordsWithDate = await this.evolucionRepository.findOne({
+          where: {
+            identificacion_cliente: this.body.client_id,
+            fecha: data.fecha,
+          },
+        });
+
+        !existRecordsWithDate
           ? this.insertData(data, 'facebook_evolucion')
           : '';
       }
 
-      crecimiento_comunidad = crecimiento_comunidad.map(
-        (crecimiento_comun) =>
-          `${crecimiento_comun[0]}-${crecimiento_comun[1]}`,
+      // ------- ALCANCE PAGINA --------
+
+      alcance_organico_pagina = alcance_organico_pagina.map(
+        (alcance_organico_pagina) =>
+          `${alcance_organico_pagina[0]}-split${alcance_organico_pagina[1]}`,
       );
-      ganados_crecimiento_comunidad = ganados_crecimiento_comunidad.map(
-        (ganados_crecimiento_comun) =>
-          `${ganados_crecimiento_comun[0]}-${ganados_crecimiento_comun[1]}`,
+      alcance_pago_pagina = alcance_pago_pagina.map(
+        (alcance_pago_pagina) =>
+          `${alcance_pago_pagina[0]}-split${alcance_pago_pagina[1]}`,
       );
+
+      for (let index = 0; index < alcance_organico_pagina.length; index++) {
+        const alcance_organico_pagina_values =
+          alcance_organico_pagina[index].split('-split');
+        const alcance_pago_pagina_values =
+          alcance_pago_pagina[index].split('-split');
+
+        const data = {
+          ...globalData,
+          nombre_red_social: 'facebook',
+          num_alcance_organico: alcance_organico_pagina_values[0],
+          num_alcance_pago: alcance_pago_pagina_values[0],
+          fecha: this.detectDateByString(
+            `${
+              alcance_organico_pagina_values[1]
+            }${this.initialDate.getFullYear()}`,
+          ),
+        };
+
+        const existRecordsWithDate =
+          await this.alcanceInstagramRepository.findOne({
+            where: {
+              identificacion_cliente: this.body.client_id,
+              fecha: data.fecha,
+            },
+          });
+
+        !existRecordsWithDate
+          ? this.insertData(data, 'facebook_alcance_pag')
+          : '';
+      }
+
+      // ------- ALCANCE PUBLICACIONES --------
+
+      alcance_total_pagina = alcance_total_pagina.map(
+        (alcance_total_pagina) =>
+          `${alcance_total_pagina[0]}-split${alcance_total_pagina[1]}`,
+      );
+      alcance_diario_persona = alcance_diario_persona.map(
+        (alcance_diario_persona) =>
+          `${alcance_diario_persona[0]}-split${alcance_diario_persona[1]}`,
+      );
+      alcance_diario_organico = alcance_diario_organico.map(
+        (alcance_diario_organico) =>
+          `${alcance_diario_organico[0]}-split${alcance_diario_organico[1]}`,
+      );
+      alcance_diario_pagado = alcance_diario_pagado.map(
+        (alcance_diario_pagado) =>
+          `${alcance_diario_pagado[0]}-split${alcance_diario_pagado[1]}`,
+      );
+
+      for (let index = 0; index < alcance_total_pagina.length; index++) {
+        const alcance_total_pagina_values =
+          alcance_total_pagina[index].split('-split');
+        const alcance_diario_persona_values =
+          alcance_diario_persona[index].split('-split');
+        const alcance_diario_organico_values =
+          alcance_diario_organico[index].split('-split');
+        const alcance_diario_pagado_values =
+          alcance_diario_pagado[index].split('-split');
+
+        const data = {
+          ...globalData,
+          nombre_red_social: 'facebook',
+          num_alcance_total_pagina: alcance_total_pagina_values[0],
+          num_alcance_diario_persona: alcance_diario_persona_values[0],
+          num_alcance_diario_organico: alcance_diario_organico_values[0],
+          num_alcance_diario_pagado: alcance_diario_pagado_values[0],
+          fecha: this.detectDateByString(
+            `${
+              alcance_total_pagina_values[1]
+            }${this.initialDate.getFullYear()}`,
+          ),
+        };
+
+        const existRecordsWithDate =
+          await this.alcancePublicacionRepository.findOne({
+            where: {
+              identificacion_cliente: this.body.client_id,
+              fecha: data.fecha,
+            },
+          });
+
+        !existRecordsWithDate
+          ? this.insertData(data, 'facebook_alcance_publicacion')
+          : '';
+      }
     }
   }
 
@@ -456,8 +649,16 @@ export class ReportsService {
       this.guardadaRankingRepository.save(data);
     } else if (table == 'alcance_ranking') {
       this.alcanceRankingRepository.save(data);
-    } else if (table == 'facebook_evolucion') {
+    } else if (table == 'facebook_evolucion_likes') {
       this.evolucionLikesRepository.save(data);
+    } else if (table == 'facebook_seguidores') {
+      this.seguidorPaginaRepository.save(data);
+    } else if (table == 'facebook_evolucion') {
+      this.evolucionRepository.save(data);
+    } else if (table == 'facebook_alcance_pag') {
+      this.alcancePaginaRepository.save(data);
+    } else if (table == 'facebook_alcance_publicacion') {
+      this.alcancePublicacionRepository.save(data);
     }
   }
 
