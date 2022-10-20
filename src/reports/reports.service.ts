@@ -50,6 +50,7 @@ export class ReportsService {
   private user;
   private body;
   private initialDate;
+  private igDate;
 
   async processReport(body: ReportDto) {
     return Promise.allSettled([
@@ -212,9 +213,12 @@ export class ReportsService {
   async getReportInstagramUser(body: ReportDto) {
     this.user = await this.getUser(body).toPromise();
     this.body = body;
+
     return this.httpService
       .get(
-        `https://reportes-codyd.herokuapp.com/v1/instagram/user/metrics?page_id=${body.client_id}&since=${body.since}&until=${body.until}`,
+        `https://reportes-codyd.herokuapp.com/v1/instagram/user/metrics?page_id=${
+          body.client_id
+        }&since=${this.getDatesIg('since')}&until=${this.getDatesIg('until')}`,
         {
           headers: {
             Authorization: `Bearer ${this.user.token}`,
@@ -523,13 +527,14 @@ export class ReportsService {
           ),
         };
 
-        const existRecordsWithDate =
-          await this.alcanceInstagramRepository.findOne({
+        const existRecordsWithDate = await this.alcancePaginaRepository.findOne(
+          {
             where: {
               identificacion_cliente: this.body.client_id,
               fecha: data.fecha,
             },
-          });
+          },
+        );
 
         !existRecordsWithDate
           ? this.insertData(data, 'facebook_alcance_pag')
@@ -953,7 +958,29 @@ export class ReportsService {
   }
 
   detectDateByString(date) {
-    const dateDetected = moment(date).format('YYYY-MM-DD');
+    const dateDetected = moment(new Date(date)).format('YYYY-MM-DD');
     return dateDetected;
+  }
+
+  getDatesIg(periodDate) {
+    const currentDate = new Date();
+    if (periodDate == 'since') {
+      currentDate.setDate(currentDate.getDate() - 30);
+      this.igDate =
+        currentDate.getFullYear() +
+        '-' +
+        ('0' + (currentDate.getMonth() + 1)).slice(-2) +
+        '-' +
+        ('0' + currentDate.getDate()).slice(-2);
+    } else {
+      this.igDate =
+        currentDate.getFullYear() +
+        '-' +
+        ('0' + (currentDate.getMonth() + 1)).slice(-2) +
+        '-' +
+        ('0' + currentDate.getDate()).slice(-2);
+    }
+
+    return this.igDate;
   }
 }
