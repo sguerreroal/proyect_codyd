@@ -1,6 +1,7 @@
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JoiPipeModule } from 'nestjs-joi';
 import {
   AlcanceInstagram,
   AlcancePagina,
@@ -19,6 +20,7 @@ import { ReportsService } from './reports.service';
 
 @Module({
   imports: [
+    JoiPipeModule,
     HttpModule.register({
       timeout: 50000,
       maxRedirects: 5,
