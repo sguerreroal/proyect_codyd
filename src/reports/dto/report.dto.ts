@@ -11,8 +11,6 @@ export class ReportDto {
   @JoiSchema(Joi.number().required())
   client_id: string;
   @JoiSchema(Joi.string().required())
-  metrics: string;
-  @JoiSchema(Joi.string().required())
   since: string;
   @JoiSchema(Joi.string().required())
   until: string;

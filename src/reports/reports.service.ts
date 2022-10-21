@@ -17,6 +17,7 @@ import {
   SeguidorPagina,
 } from 'src/typeorm';
 import { Repository } from 'typeorm';
+import { METRICS } from './constants';
 import { ReportDto } from './dto/report.dto';
 
 @Injectable()
@@ -83,7 +84,7 @@ export class ReportsService {
 
     return this.httpService
       .get(
-        `https://reportes-codyd.herokuapp.com/v1/facebook/page/metrics?page_id=${body.client_id}&metrics=${body.metrics}&since=${body.since}&until=${body.until}`,
+        `https://reportes-codyd.herokuapp.com/v1/facebook/page/metrics?page_id=${body.client_id}&metrics=${METRICS}&since=${body.since}&until=${body.until}`,
         {
           headers: {
             Authorization: `Bearer ${this.user.token}`,
