@@ -55,12 +55,12 @@ export class ReportsService {
 
   async processReport(body: ReportDto) {
     return Promise.allSettled([
-      (await this.getReportInstagramUser(body)).toPromise(),
       (await this.getReportInstagramPosts(body)).toPromise(),
       (await this.getReportFacebookUser(body)).toPromise(),
       (await this.getReportFacebookPostsMetrics(body)).toPromise(),
       (await this.getReportFacebookPostsShares(body)).toPromise(),
       (await this.getReportFacebookPostsReactions(body)).toPromise(),
+      (await this.getReportInstagramUser(body)).toPromise(),
     ]);
   }
 
@@ -973,6 +973,7 @@ export class ReportsService {
         ('0' + (currentDate.getMonth() + 1)).slice(-2) +
         '-' +
         ('0' + currentDate.getDate()).slice(-2);
+      this.body.since = this.igDate;
     } else {
       this.igDate =
         currentDate.getFullYear() +
