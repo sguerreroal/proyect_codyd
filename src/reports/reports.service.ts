@@ -53,6 +53,7 @@ export class ReportsService {
   private initialDate;
   private igDate;
 
+  // LLAMAR PARALELAMENTE LOS DIFERENTES LLAMADOS HTTP
   async processReport(body: ReportDto) {
     return Promise.allSettled([
       (await this.getReportInstagramPosts(body)).toPromise(),
@@ -64,6 +65,7 @@ export class ReportsService {
     ]);
   }
 
+  // RECIBE TOKEN PARA ASIGNAR A LOS LLAMADOS HTTP
   getUser(body: ReportDto) {
     return this.httpService
       .post('https://reportes-codyd.herokuapp.com/v1/login', {
@@ -78,6 +80,7 @@ export class ReportsService {
       );
   }
 
+  // LLAMADOS HTTP PARA RECIBIR LA INFORMACION DE LA API CODYD
   async getReportFacebookUser(body: ReportDto) {
     this.user = await this.getUser(body).toPromise();
     this.body = body;
@@ -280,6 +283,7 @@ export class ReportsService {
       );
   }
 
+  // TRANSFORMAR LA INFORMACION
   async transformData(data, network) {
     this.initialDate = new Date(this.body.since + 'T12:00:00');
     const SQL_QUERY = {
@@ -920,6 +924,7 @@ export class ReportsService {
     }
   }
 
+  // GUARDA INFORMACION EN LA BASE DE DATOS
   insertData(data, table) {
     if (table == 'instagram_alcance') {
       this.alcanceInstagramRepository.save(data);
@@ -945,7 +950,7 @@ export class ReportsService {
       this.alcancePublicacionRepository.save(data);
     }
   }
-
+  // SUMAR UN DIA A LA FECHA ACTUAL - INSTAGRAM USER Y FACEBOOK USER
   increaseDate(date) {
     const currentDate = new Date(date);
     currentDate.setDate(currentDate.getDate() + 1);
@@ -958,11 +963,13 @@ export class ReportsService {
     return this.initialDate;
   }
 
+  // DETECTAR LA FECHA POR MEDIO DE UNA CADENA - FACEBOOK POST Y INSTAGRAM POSTS
   detectDateByString(date) {
     const dateDetected = moment(new Date(date)).format('YYYY-MM-DD');
     return dateDetected;
   }
 
+  // ASGINAR LA FECHA INICIAL MENOS 30 DIAS Y LA ACTUAL
   getDatesIg(periodDate) {
     const currentDate = new Date();
     if (periodDate == 'since') {
